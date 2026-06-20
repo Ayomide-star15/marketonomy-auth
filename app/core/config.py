@@ -18,6 +18,13 @@ class Settings(BaseSettings):
     # Google OAuth
     GOOGLE_CLIENT_ID: str
 
+    # Email(Resend)
+    RESEND_API_KEY: str
+    FROM_EMAIL: str = "onboarding@resend.dev"
+
+     # Frontend URL (for email links)
+    FRONTEND_URL: str = "http://localhost:3000"
+
     class Config:
         env_file = ".env"
 

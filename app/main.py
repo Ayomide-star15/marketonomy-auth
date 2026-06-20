@@ -1,11 +1,16 @@
 from fastapi import FastAPI
 from app.db.database import engine
+from app.api.v1.endpoints import auth, password, token
 
 app = FastAPI(
     title="Marketonomy Auth API",
     description="Authentication system for Marketonomy",
     version="1.0.0"
 )
+
+app.include_router(auth.router, prefix="/api/v1")
+app.include_router(password.router, prefix="/api/v1")
+app.include_router(token.router, prefix="/api/v1")
 
 @app.get("/")
 def root():

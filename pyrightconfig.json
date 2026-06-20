@@ -1,0 +1,7 @@
+{
+  "reportGeneralTypeIssues": false,
+  "reportArgumentType": false,
+  "reportAttributeAccessIssue": false,
+  "reportMissingImports": false,
+  "reportCallIssue": false
+}
