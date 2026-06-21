@@ -213,13 +213,17 @@ def check_account_lockout(db: DBSession, email: str):
     lockout = (
         db.query(AccountLockout)
         .filter(AccountLockout.email == email)
-        .filter(AccountLockout.locked_until > datetime.now(timezone.utc))
         .order_by(AccountLockout.created_at.desc())
         .first()
     )
-    if lockout:
-        raise ValueError(f"Account is locked until {lockout.locked_until}. Too many failed attempts.")
 
+    if lockout:
+        locked_until = lockout.locked_until
+        if locked_until.tzinfo is None:
+            locked_until = locked_until.replace(tzinfo=timezone.utc)
+
+        if locked_until > datetime.now(timezone.utc):
+            raise ValueError(f"Account is locked until {locked_until}. Too many failed attempts.")
 
 def check_and_lock_account(db: DBSession, email: str):
     """Lock account after 5 failed attempts in the last 15 minutes"""

@@ -8,9 +8,14 @@ from app.services.auth_service import log_action, generate_tokens_for_user
 from app.services.email_service import send_password_reset_email
 
 
-def create_password_set_token(db: DBSession, user_id) -> str:
-    """Called right after Google signup - lets user set a password"""
+def make_aware(dt: datetime) -> datetime:
+    """Ensure a datetime is timezone-aware (UTC) before comparing"""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
 
+
+def create_password_set_token(db: DBSession, user_id) -> str:
     token = generate_secure_token()
 
     password_set_token = PasswordSetToken(
@@ -27,8 +32,6 @@ def create_password_set_token(db: DBSession, user_id) -> str:
 
 
 def set_password(db: DBSession, user_id, new_password: str) -> User:
-    """User sets their password after Google signup (called from inside dashboard)"""
-
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
@@ -37,7 +40,6 @@ def set_password(db: DBSession, user_id, new_password: str) -> User:
     if user.has_set_password:
         raise ValueError("Password has already been set for this account")
 
-    # Hash and save the password
     user.password_hash = hash_password(new_password)
     user.has_set_password = True
     user.auth_provider = AuthProviderEnum.both
@@ -49,16 +51,13 @@ def set_password(db: DBSession, user_id, new_password: str) -> User:
 
 
 def request_password_reset(db: DBSession, email: str) -> bool:
-    """User forgot password - send them a reset link"""
-
     user = db.query(User).filter(User.email == email).first()
 
-    # Don't reveal whether the email exists or not (security best practice)
     if not user:
         return True
 
     if not user.has_set_password:
-        return True  # Can't reset a password that was never set
+        return True
 
     token = generate_secure_token()
 
@@ -79,8 +78,6 @@ def request_password_reset(db: DBSession, email: str) -> bool:
 
 
 def reset_password(db: DBSession, token: str, new_password: str) -> User:
-    """User clicks reset link and sets a new password"""
-
     reset_token = (
         db.query(PasswordResetToken)
         .filter(PasswordResetToken.token == token)
@@ -91,7 +88,9 @@ def reset_password(db: DBSession, token: str, new_password: str) -> User:
     if not reset_token:
         raise ValueError("Invalid or already used reset token")
 
-    if reset_token.expires_at < datetime.now(timezone.utc):
+    expires_at = make_aware(reset_token.expires_at)
+
+    if expires_at < datetime.now(timezone.utc):
         raise ValueError("Reset token has expired. Please request a new one")
 
     user = db.query(User).filter(User.id == reset_token.user_id).first()
@@ -99,12 +98,8 @@ def reset_password(db: DBSession, token: str, new_password: str) -> User:
     if not user:
         raise ValueError("User not found")
 
-    # Update password
     user.password_hash = hash_password(new_password)
-
-    # Mark token as used
     reset_token.is_used = True
-
     db.commit()
 
     log_action(db, user.id, "password_reset_completed")
