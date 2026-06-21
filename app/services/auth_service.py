@@ -224,7 +224,7 @@ def check_account_lockout(db: DBSession, email: str):
 
         if locked_until > datetime.now(timezone.utc):
             raise ValueError(f"Account is locked until {locked_until}. Too many failed attempts.")
-
+        
 def check_and_lock_account(db: DBSession, email: str):
     """Lock account after 5 failed attempts in the last 15 minutes"""
 

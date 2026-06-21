@@ -34,7 +34,8 @@ class LoginResponse(BaseModel):
     user_id: str
     email: str
     role: str
-    full_name: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
 
 
 # ===== LOGOUT =====

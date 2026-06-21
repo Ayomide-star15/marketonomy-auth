@@ -78,6 +78,8 @@ def request_password_reset(db: DBSession, email: str) -> bool:
 
 
 def reset_password(db: DBSession, token: str, new_password: str) -> User:
+    """User clicks reset link and sets a new password"""
+
     reset_token = (
         db.query(PasswordResetToken)
         .filter(PasswordResetToken.token == token)
@@ -88,7 +90,10 @@ def reset_password(db: DBSession, token: str, new_password: str) -> User:
     if not reset_token:
         raise ValueError("Invalid or already used reset token")
 
-    expires_at = make_aware(reset_token.expires_at)
+    # Make both datetimes timezone-aware before comparing
+    expires_at = reset_token.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
 
     if expires_at < datetime.now(timezone.utc):
         raise ValueError("Reset token has expired. Please request a new one")

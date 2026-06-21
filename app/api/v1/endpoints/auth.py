@@ -64,6 +64,7 @@ def login_with_google(data: GoogleLoginRequest, request: Request, db: DBSession 
             email=user.email,
             role=user.role.value if hasattr(user.role, "value") else user.role,
             first_name=user.first_name,
+            last_name=user.last_name
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -91,6 +92,7 @@ def login(data: LoginRequest, request: Request, db: DBSession = Depends(get_db))
             email=user.email,
             role=user.role.value if hasattr(user.role, "value") else user.role,
             first_name=user.first_name,
+            last_name=user.last_name
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))

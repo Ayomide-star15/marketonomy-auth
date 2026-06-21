@@ -5,6 +5,8 @@ import re
 def validate_password_strength(value: str) -> str:
     if len(value) < 8:
         raise ValueError("Password must be at least 8 characters long")
+    if len(value.encode("utf-8")) > 72:
+        raise ValueError("Password is too long (maximum 72 characters)")
     if not any(char.isupper() for char in value):
         raise ValueError("Password must contain at least one uppercase letter")
     if not any(char.islower() for char in value):
@@ -19,7 +21,6 @@ def validate_password_strength(value: str) -> str:
 # ===== SET PASSWORD (after Google signup) =====
 class SetPasswordRequest(BaseModel):
     password: str
-    confirm_password: str
 
     @field_validator("password")
     @classmethod
@@ -47,7 +48,6 @@ class ForgotPasswordResponse(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
-    confirm_password: str
 
     @field_validator("new_password")
     @classmethod
