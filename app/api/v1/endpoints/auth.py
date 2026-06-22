@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session as DBSession
 
 from app.db.database import get_db
@@ -69,12 +70,16 @@ def login_with_google(data: GoogleLoginRequest, request: Request, db: DBSession 
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-
 @router.post("/login", response_model=LoginResponse)
-def login(data: LoginRequest, request: Request, db: DBSession = Depends(get_db)):
+def login(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: DBSession = Depends(get_db),
+):
     try:
+        # form_data.username is where you'll type your EMAIL in Swagger
         user = login_with_password(
-            db, data.email, data.password,
+            db, form_data.username, form_data.password,
             ip_address=request.client.host if request.client else None,
             device_info=request.headers.get("user-agent"),
         )
@@ -92,7 +97,7 @@ def login(data: LoginRequest, request: Request, db: DBSession = Depends(get_db))
             email=user.email,
             role=user.role.value if hasattr(user.role, "value") else user.role,
             first_name=user.first_name,
-            last_name=user.last_name
+            last_name=user.last_name,
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
