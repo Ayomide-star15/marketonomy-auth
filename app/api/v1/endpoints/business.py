@@ -16,7 +16,7 @@ from app.services.business_profile_service import (
     create_or_update_business_profile,
     get_my_business_profile,
 )
-from app.core.dependencies import get_current_user   # same JWT dependency used everywhere else
+from app.core.dependencies import get_current_user, require_role   # same JWT dependency used everywhere else
 from app.models.user import User
 
 # prefix="/business" means every route below lives at /api/v1/business/...
@@ -27,7 +27,7 @@ router = APIRouter(prefix="/business", tags=["Business"])
 @router.post("/profile", response_model=BusinessProfileResponse)
 def save_business_profile(
     data: BusinessProfileRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role("business_owner")),
     db: DBSession = Depends(get_db),
 ):
     """
