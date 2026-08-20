@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.db.database import engine
-from app.api.v1.endpoints import auth, password, token, projects
+from app.api.v1.endpoints import auth, password, token, projects, business
 
 app = FastAPI(
     title="Marketonomy Auth API",
@@ -12,6 +12,7 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(password.router, prefix="/api/v1")
 app.include_router(token.router, prefix="/api/v1")
 app.include_router(projects.router, prefix="/api/v1")
+app.include_router(business.router, prefix="/api/v1")
 
 @app.get("/")
 def root():

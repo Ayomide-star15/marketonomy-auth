@@ -41,7 +41,6 @@ def list_my_projects(
     db: DBSession = Depends(get_db),                   # a fresh database session for this one request
 ):
     """
-    GET /api/v1/projects
     Returns everything the CURRENTLY LOGGED-IN client has commissioned.
     This is the first endpoint to test — if this works, it proves your
     auth + database + ORM are all wired together correctly.
@@ -56,10 +55,9 @@ def start_project(
     db: DBSession = Depends(get_db),
 ):
     """
-    POST /api/v1/projects
     Client starts a new project with a business.
     Notice we use current_user.id for client_id — never data.client_id —
-    so a client can never aim to be someone else.
+    so a client can never claim to be someone else.
     """
     project = create_project(
         db,
@@ -79,7 +77,6 @@ def create_milestone(
     db: DBSession = Depends(get_db),
 ):
     """
-    POST /api/v1/projects/{project_id}/milestones
     Add a payment milestone to an existing project.
     """
     try:
