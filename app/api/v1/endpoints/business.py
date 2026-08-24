@@ -46,7 +46,7 @@ def save_business_profile(
 
 @router.get("/profile/me", response_model=BusinessProfileResponse)
 def get_my_profile(
-    current_user: User = Depends(get_current_user),
+    current_user: User =  Depends(require_role("business_owner")),
     db: DBSession = Depends(get_db),
 ):
     """
