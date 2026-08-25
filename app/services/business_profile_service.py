@@ -42,3 +42,13 @@ def get_my_business_profile(db: DBSession, user_id) -> BusinessProfile:
     if not profile:
         raise ValueError("No business profile found for this account yet")
     return profile
+
+def get_business_profile_by_id(db: DBSession, profile_id) -> BusinessProfile:
+    """
+    Fetches any business profile by its ID.
+    Used by clients browsing the market to view a business's public profile.
+    """
+    profile = db.query(BusinessProfile).filter(BusinessProfile.id == profile_id).first()
+    if not profile:
+        raise ValueError("Business profile not found")
+    return profile
