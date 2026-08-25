@@ -15,6 +15,7 @@ from app.schemas.business_profile import BusinessProfileRequest, BusinessProfile
 from app.services.business_profile_service import (
     create_or_update_business_profile,
     get_my_business_profile,
+    get_business_profile_by_id,
 )
 from app.core.dependencies import get_current_user, require_role   # same JWT dependency used everywhere else
 from app.models.user import User
@@ -56,5 +57,20 @@ def get_my_profile(
     """
     try:
         return get_my_business_profile(db, current_user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    
+@router.get("/profile/{profile_id}", response_model=BusinessProfileResponse)
+def get_profile_by_id(
+    profile_id: int,
+    db: DBSession = Depends(get_db),
+):
+    """
+    GET /api/v1/business/profile/{profile_id}
+    Public endpoint — any client can view a business profile by ID.
+    No authentication required since this is the browse/discovery page.
+    """
+    try:
+        return get_business_profile_by_id(db, profile_id)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
