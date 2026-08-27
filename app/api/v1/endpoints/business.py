@@ -58,3 +58,4 @@ def get_my_profile(
         return get_my_business_profile(db, current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+

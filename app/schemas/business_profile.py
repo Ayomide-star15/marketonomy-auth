@@ -10,6 +10,8 @@ from typing import Optional
 from datetime import datetime
 from uuid import UUID
 
+from app.models.business_profile import BusinessProfileStatusEnum
+
 
 # ===== STEP 1 — CREATE / UPDATE BUSINESS PROFILE =====
 # What the frontend sends when the business owner submits Step 1 of the
@@ -41,6 +43,8 @@ class BusinessProfileResponse(BaseModel):
     bio: Optional[str] = None
     website: Optional[str] = None
     phone: Optional[str] = None
+    status: str  # draft | pending_review | approved | rejected | suspended
+    rejection_reason: Optional[str] = None
     created_at: datetime
 
 
@@ -56,3 +60,15 @@ class BusinessProfileResponse(BaseModel):
         # Lets Pydantic build this response directly from a SQLAlchemy
         # BusinessProfile object, instead of requiring a plain dict.
         from_attributes = True
+# ===== ADMIN — APPROVE / REJECT A BUSINESS =====
+# What the admin sends when reviewing a submission. Only ever used on
+# admin-only endpoints — never exposed to the business owner themselves.
+class BusinessReviewDecisionRequest(BaseModel):
+    reason: Optional[str] = None   # required in practice for rejections, optional for approvals
+
+    @field_validator("reason")
+    @classmethod
+    def reason_not_blank_if_provided(cls, value: Optional[str]) -> Optional[str]:
+        if value is not None and not value.strip():
+            raise ValueError("Reason cannot be blank if provided")
+        return value
