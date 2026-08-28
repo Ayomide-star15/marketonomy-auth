@@ -13,7 +13,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session as DBSession
 
 from app.db.database import get_db
-from app.schemas.business_profile import BusinessProfileRequest, BusinessProfileResponse
+from app.schemas.business_profile import(
+    BusinessProfileRequest,
+    BusinessProfileResponse
+)
+
 from app.services.business_profile_service import (
     create_or_update_business_profile,
     get_my_business_profile,
