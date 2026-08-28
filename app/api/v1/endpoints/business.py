@@ -61,7 +61,7 @@ def get_my_profile(
         return get_my_business_profile(db, current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    
+
 @router.get("/profile/{business_id}", response_model=BusinessProfileResponse)
 def get_profile_by_id(
     business_id: UUID,

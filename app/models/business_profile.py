@@ -13,7 +13,21 @@ from sqlalchemy import Column, String, Integer, Text, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 import uuid
+import enum
 from app.db.database import Base
+
+class BusinessProfileStatusEnum(str, enum.Enum):
+    """
+    The lifecycle of a business profile. Mirrors the CHECK constraint on
+    business_profiles.status in Postgres — if you ever add a new status
+    value, update BOTH this enum AND the DB constraint, or inserts will
+    pass here but fail at the database.
+    """
+    draft = "draft"                    # default — business is still filling in the wizard
+    pending_review = "pending_review"  # submitted, waiting on admin
+    approved = "approved"              # live on Market
+    rejected = "rejected"              # admin sent it back
+    suspended = "suspended"            # was approved, later pulled (e.g. policy violation)
 
 
 class BusinessProfile(Base):
@@ -42,6 +56,7 @@ class BusinessProfile(Base):
     industry = Column(String(100), nullable=True)          # e.g. "SaaS & Tech" — also what Market's filter chips read from
     year_established = Column(Integer, nullable=True)      # feeds the Trust Score "Longevity" calculation later
     employee_count = Column(String(50), nullable=True)     # stored as text since it's a range label like "6-20", not a raw number
-    is_approved = Column(String(50), nullable=True, default="pending")  # pending | approved | rejected
+    status = Column(String(50), nullable=False, default=BusinessProfileStatusEnum.draft.value)
+    rejection_reason = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
