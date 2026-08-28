@@ -7,6 +7,8 @@
 # Same pattern as projects.py: thin functions, real logic lives in
 # business_profile_service.py.
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session as DBSession
 
@@ -60,17 +62,17 @@ def get_my_profile(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     
-@router.get("/profile/{profile_id}", response_model=BusinessProfileResponse)
+@router.get("/profile/{business_id}", response_model=BusinessProfileResponse)
 def get_profile_by_id(
-    profile_id: int,
+    business_id: UUID,
     db: DBSession = Depends(get_db),
 ):
     """
-    GET /api/v1/business/profile/{profile_id}
-    Public endpoint — any client can view a business profile by ID.
-    No authentication required since this is the browse/discovery page.
+    GET /api/v1/business/profile/{business_id}
+    Public endpoint — any client can view an approved business profile by ID.
+    Returns 404 if the business does not exist or has not been approved.
     """
     try:
-        return get_business_profile_by_id(db, profile_id)
+        return get_business_profile_by_id(db, business_id)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
