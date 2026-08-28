@@ -105,3 +105,16 @@ def reject_business_profile(db: DBSession, business_id: str, reason: str) -> Bus
     db.commit()
     db.refresh(profile)
     return profile
+
+def get_business_profile_by_id(db: DBSession, business_id) -> BusinessProfile:
+    """
+    Fetches any business profile by its ID.
+    Only returns the profile if it has been approved by an admin.
+    Used by clients browsing the market to view a business's public profile.
+    """
+    profile = db.query(BusinessProfile).filter(BusinessProfile.id == business_id).first()
+    if not profile:
+        raise ValueError("Business profile not found")
+    if profile.status != BusinessProfileStatusEnum.approved.value:
+        raise ValueError("This business profile is not publicly available")
+    return profile
