@@ -42,6 +42,6 @@ class BusinessProfile(Base):
     industry = Column(String(100), nullable=True)          # e.g. "SaaS & Tech" — also what Market's filter chips read from
     year_established = Column(Integer, nullable=True)      # feeds the Trust Score "Longevity" calculation later
     employee_count = Column(String(50), nullable=True)     # stored as text since it's a range label like "6-20", not a raw number
-
+    is_approved = Column(String(50), nullable=True, default="pending")  # pending | approved | rejected
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
