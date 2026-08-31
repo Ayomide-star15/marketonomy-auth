@@ -10,7 +10,7 @@ from app.core.config import settings
 def verify_token(token: str) -> dict:
     """
     Decode and verify a JWT access token.
-    This is what Eric's API will essentially replicate
+    This is what API will essentially replicate
     using the same JWT_SECRET.
     """
     try:

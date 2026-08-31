@@ -57,6 +57,9 @@ def submit_for_review(db: DBSession, user_id) -> BusinessProfile:
 
     if profile.status != BusinessProfileStatusEnum.draft.value:
         raise ValueError(f"Cannot submit for review — profile is already '{profile.status}'")
+    
+    if not has_required_documents(db, profile.id):
+        raise valueError(f"Please submit all 5 required documents before submitting for review")
 
     profile.status = BusinessProfileStatusEnum.pending_review.value
     profile.rejection_reason = None  # clear any stale rejection reason from a prior cycle
