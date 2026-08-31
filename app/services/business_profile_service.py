@@ -4,7 +4,12 @@
 # thin, the actual logic (create, fetch, ownership checks) lives here.
 
 from sqlalchemy.orm import Session as DBSession
-from app.models.business_profile import BusinessProfile, BusinessProfileStatusEnum
+from app.models.business_profile import (
+    BusinessProfile, 
+    BusinessProfileStatusEnum,
+)
+
+from app.services.business_document_service import has_required_documents
 
 
 def create_or_update_business_profile(db: DBSession, user_id, data: dict) -> BusinessProfile:
@@ -59,7 +64,7 @@ def submit_for_review(db: DBSession, user_id) -> BusinessProfile:
         raise ValueError(f"Cannot submit for review — profile is already '{profile.status}'")
     
     if not has_required_documents(db, profile.id):
-        raise valueError(f"Please submit all 5 required documents before submitting for review")
+        raise ValueError(f"Please submit all 5 required documents before submitting for review")
 
     profile.status = BusinessProfileStatusEnum.pending_review.value
     profile.rejection_reason = None  # clear any stale rejection reason from a prior cycle
