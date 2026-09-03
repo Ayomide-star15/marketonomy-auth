@@ -9,14 +9,41 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter, 
+    Depends,
+    HTTPException, 
+    status, 
+    UploadFile, 
+    File, 
+    Form
+)
+
 from sqlalchemy.orm import Session as DBSession
+from typing import List, Optional
+from datetime import date
 
 from app.db.database import get_db
+
 from app.schemas.business_profile import(
     BusinessProfileRequest,
     BusinessProfileResponse
 )
+
+from app.schemas.business_document import(
+    BusinessDocumentResponse,
+    DocumentDownloadUrlResponse,
+    RequiredDocumentsStatusResponse
+)
+
+from app.services.business_document_service import (
+    upload_business_document,
+    get_my_documents,
+    get_document_download_url,
+    delete_document,
+    get_required_documents_status
+)
+
 
 from app.services.business_profile_service import (
     create_or_update_business_profile,
@@ -80,3 +107,71 @@ def get_profile_by_id(
         return get_business_profile_by_id(db, business_id)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+# ===== FILE DOCUMENTS =====
+
+@router.post("/documents", response_model=BusinessDocumentResponse)
+def upload_document(
+    document_type: str = Form(...),
+    expiry_date: Optional[date] = Form(None),
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_role("business_owner")),
+    db: DBSession = Depends(get_db),
+):
+    """
+    POST /api/v1/business/documents
+    multipart/form-data. document_type must be one of:
+    business_registration | tax_identification | owner_id | nin_document | other
+    """
+    try:
+        return upload_business_document(
+            db, user_id=current_user.id, document_type=document_type,
+            file=file, expiry_date=expiry_date,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.get("/documents", response_model=List[BusinessDocumentResponse])
+def list_my_documents(
+    current_user: User = Depends(require_role("business_owner")),
+    db: DBSession = Depends(get_db),
+):
+    return get_my_documents(db, current_user.id)
+
+
+@router.get("/documents/{document_id}/download-url", response_model=DocumentDownloadUrlResponse)
+def get_download_url(
+    document_id: str,
+    current_user: User = Depends(require_role("business_owner")),
+    db: DBSession = Depends(get_db),
+):
+    try:
+        url = get_document_download_url(db, current_user.id, document_id)
+        return DocumentDownloadUrlResponse(download_url=url, expires_in_seconds=300)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.delete("/documents/{document_id}")
+def remove_document(
+    document_id: str,
+    current_user: User = Depends(require_role("business_owner")),
+    db: DBSession = Depends(get_db),
+):
+    try:
+        delete_document(db, current_user.id, document_id)
+        return {"message": "Document deleted successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.get("/documents/required-status", response_model=RequiredDocumentsStatusResponse)
+def get_documents_progress(
+    current_user: User = Depends(require_role("business_owner")),
+    db: DBSession = Depends(get_db),
+):
+    """Powers the '0/5 uploaded' progress badge in the wizard sidebar."""
+    profile = get_my_business_profile(db, current_user.id)
+    return get_required_documents_status(db, profile.id)
