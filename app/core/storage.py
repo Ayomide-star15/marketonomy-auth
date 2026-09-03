@@ -1,29 +1,31 @@
 # app/core/storage.py
-#
-# Thin wrapper around the supabase-py Storage client. Kept separate from
-# business_document_service.py so any future feature needing file
-# storage (portfolio images, business logos) reuses this instead of
-# each service reimplementing its own client setup.
+# app/core/storage.py
 
 from supabase import create_client, Client
 from app.core.config import settings
 
-_supabase_client: Client = None
+_storage_client: Client = None
 
-BUCKET_NAME = "business-documents"   # private bucket — created via migration,
-                                       # 10MB limit + PDF/JPG/PNG enforced at the storage layer
+BUCKET_NAME = "business-documents"
 
 
-def get_supabase_client() -> Client:
-    global _supabase_client
-    if _supabase_client is None:
-        _supabase_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
-    return _supabase_client
+def get_storage_client() -> Client:
+    """
+    Uses the SERVICE ROLE key, not the regular SUPABASE_KEY. Storage
+    RLS would otherwise block every operation, since our backend — not
+    the end user — is the one talking to Supabase directly. Ownership
+    checks already happen in business_document_service.py before this
+    is ever called, so bypassing RLS here is safe: the trust boundary
+    is enforced in our own code, not in Supabase's policies.
+    """
+    global _storage_client
+    if _storage_client is None:
+        _storage_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+    return _storage_client
 
 
 def upload_file_to_storage(path: str, file_bytes: bytes, content_type: str) -> None:
-    """Uploads raw bytes to the private bucket at the given path."""
-    client = get_supabase_client()
+    client = get_storage_client()
     client.storage.from_(BUCKET_NAME).upload(
         path,
         file_bytes,
@@ -32,15 +34,11 @@ def upload_file_to_storage(path: str, file_bytes: bytes, content_type: str) -> N
 
 
 def generate_signed_download_url(path: str, expires_in: int = 300) -> str:
-    """
-    Generates a short-lived signed URL (default 5 min) so a private file
-    can be viewed without the bucket ever being public.
-    """
-    client = get_supabase_client()
+    client = get_storage_client()
     result = client.storage.from_(BUCKET_NAME).create_signed_url(path, expires_in)
     return result["signedURL"]
 
 
 def delete_file_from_storage(path: str) -> None:
-    client = get_supabase_client()
+    client = get_storage_client()
     client.storage.from_(BUCKET_NAME).remove([path])
