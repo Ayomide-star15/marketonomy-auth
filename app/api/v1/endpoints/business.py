@@ -49,7 +49,12 @@ from app.services.business_profile_service import (
     create_or_update_business_profile,
     get_my_business_profile,
     get_business_profile_by_id,
+    
 )
+
+from app.schemas.business_bank_details import BusinessBankDetailsRequest, BusinessBankDetailsResponse
+from app.services.business_bank_details_service import create_or_update_bank_details, get_my_bank_details
+
 from app.core.dependencies import get_current_user, require_role   # same JWT dependency used everywhere else
 from app.models.user import User
 
@@ -175,3 +180,56 @@ def get_documents_progress(
     """Powers the '0/5 uploaded' progress badge in the wizard sidebar."""
     profile = get_my_business_profile(db, current_user.id)
     return get_required_documents_status(db, profile.id)
+
+# ===== BANK DETAILS =====
+
+@router.post("/bank-details", response_model=BusinessBankDetailsResponse)
+def save_bank_details(
+    data: BusinessBankDetailsRequest,
+    current_user: User = Depends(require_role("business_owner")),
+    db: DBSession = Depends(get_db),
+):
+    """
+    POST /api/v1/business/bank-details
+    Business owner submits their bank details and NIN for the first time.
+    If details already exist, this updates them instead — same upsert
+    pattern used across the rest of the business registration wizard.
+    """
+    try:
+        return create_or_update_bank_details(db, user_id=current_user.id, data=data.model_dump())
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.get("/bank-details", response_model=BusinessBankDetailsResponse)
+def get_bank_details(
+    current_user: User = Depends(require_role("business_owner")),
+    db: DBSession = Depends(get_db),
+):
+    """
+    GET /api/v1/business/bank-details
+    Business owner fetches their existing bank details to pre-fill the form
+    if they're returning to edit rather than submitting for the first time.
+    """
+    try:
+        return get_my_bank_details(db, current_user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.patch("/bank-details", response_model=BusinessBankDetailsResponse)
+def update_bank_details(
+    data: BusinessBankDetailsRequest,
+    current_user: User = Depends(require_role("business_owner")),
+    db: DBSession = Depends(get_db),
+):
+    """
+    PATCH /api/v1/business/bank-details
+    Business owner updates their existing bank details.
+    Uses the same upsert service function — if no record exists yet,
+    it creates one; if it does, it updates it.
+    """
+    try:
+        return create_or_update_bank_details(db, user_id=current_user.id, data=data.model_dump())
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
