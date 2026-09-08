@@ -228,7 +228,7 @@ def get_bank_details(
 
 @router.patch("/bank-details", response_model=BusinessBankDetailsResponse)
 def update_bank_details(
-    data: BusinessBankDetailsRequest,
+    data: BusinessBankDetailsUpdateRequest,
     current_user: User = Depends(require_role("business_owner")),
     db: DBSession = Depends(get_db),
 ):
