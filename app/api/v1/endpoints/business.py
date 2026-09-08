@@ -41,7 +41,7 @@ from app.services.business_document_service import (
     get_my_documents,
     get_document_download_url,
     delete_document,
-    get_required_documents_status
+    get_required_documents_status,
 )
 
 
@@ -52,8 +52,17 @@ from app.services.business_profile_service import (
     
 )
 
-from app.schemas.business_bank_details import BusinessBankDetailsRequest, BusinessBankDetailsResponse
-from app.services.business_bank_details_service import create_or_update_bank_details, get_my_bank_details
+from app.schemas.business_bank_details import (
+    BusinessBankDetailsRequest, 
+    BusinessBankDetailsResponse,
+    BusinessBankDetailsUpdateRequest
+)
+
+from app.services.business_bank_details_service import (
+    create_or_update_bank_details, 
+    get_my_bank_details,
+    update_bank_details_partial
+)
 
 from app.core.dependencies import get_current_user, require_role   # same JWT dependency used everywhere else
 from app.models.user import User
@@ -230,6 +239,9 @@ def update_bank_details(
     it creates one; if it does, it updates it.
     """
     try:
-        return create_or_update_bank_details(db, user_id=current_user.id, data=data.model_dump())
+        update_data = data.model_dump(exclude_unset=True)
+        if not update_data:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields provided to update")
+        return update_bank_details_partial(db, user_id=current_user.id, data=update_data)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

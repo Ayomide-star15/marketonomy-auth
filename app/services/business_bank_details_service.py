@@ -49,3 +49,27 @@ def get_my_bank_details(db: DBSession, user_id) -> BusinessBankDetails:
     if not record:
         raise ValueError("No bank details submitted yet")
     return record
+
+def update_bank_details_partial(db: DBSession, user_id, data: dict) -> BusinessBankDetails:
+    """
+    True partial update — only touches fields that were actually sent.
+    Unlike create_or_update_bank_details, this does NOT create a new
+    record if none exists — PATCH updates something that already
+    exists; POST is what creates it the first time.
+    """
+    profile = get_business_profile_for_user(db, user_id)
+
+    existing = (
+        db.query(BusinessBankDetails)
+        .filter(BusinessBankDetails.business_profile_id == profile.id)
+        .first()
+    )
+    if not existing:
+        raise ValueError("No bank details found to update — submit them first with POST")
+
+    for key, value in data.items():
+        setattr(existing, key, value)
+
+    db.commit()
+    db.refresh(existing)
+    return existing
