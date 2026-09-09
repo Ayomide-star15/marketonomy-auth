@@ -306,3 +306,52 @@ def schedule_interview(
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    
+@router.get("/interview", response_model=BusinessInterviewResponse)
+def get_interview(
+    current_user: User = Depends(require_role("business_owner")),
+    db: DBSession = Depends(get_db),
+):
+    """
+    GET /api/v1/business/interview
+    Business owner fetches their most recent interview booking.
+    Returns 404 if no interview has been booked yet.
+    """
+    try:
+        return get_my_interview(db, current_user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.delete("/interview/{interview_id}", response_model=BusinessInterviewResponse)
+def cancel_my_interview(
+    interview_id: str,
+    current_user: User = Depends(require_role("business_owner")),
+    db: DBSession = Depends(get_db),
+):
+    """
+    DELETE /api/v1/business/interview/{interview_id}
+    Business owner cancels an existing interview booking.
+    Returns 404 if the interview does not exist or belongs to another business.
+    """
+    try:
+        return cancel_interview(db, current_user.id, interview_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post("/submit-for-review", response_model=BusinessProfileResponse)
+def submit_profile_for_review(
+    current_user: User = Depends(require_role("business_owner")),
+    db: DBSession = Depends(get_db),
+):
+    """
+    POST /api/v1/business/submit-for-review
+    Final step of the registration wizard. Flips the business profile
+    status from draft to pending_review so the admin team can evaluate it.
+    Business must have a booked or completed interview before submitting.
+    """
+    try:
+        return submit_for_review(db, current_user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
