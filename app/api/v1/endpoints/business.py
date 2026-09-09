@@ -36,6 +36,24 @@ from app.schemas.business_document import(
     RequiredDocumentsStatusResponse
 )
 
+from app.schemas.guarantor import (
+    GuarantorRequest,
+    GuarantorResponse
+)
+
+from app.services.guarantor_service import (
+    create_or_update_contact,
+    get_my_contacts
+)
+
+from app.schemas.business_interview import BookInterviewRequest, BusinessInterviewResponse
+
+from app.services.business_interview_service import (
+    book_interview,
+    get_my_interview,
+    cancel_interview
+)
+
 from app.services.business_document_service import (
     upload_business_document,
     get_my_documents,
@@ -49,7 +67,7 @@ from app.services.business_profile_service import (
     create_or_update_business_profile,
     get_my_business_profile,
     get_business_profile_by_id,
-    
+    submit_for_review
 )
 
 from app.schemas.business_bank_details import (
@@ -243,5 +261,48 @@ def update_bank_details(
         if not update_data:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields provided to update")
         return update_bank_details_partial(db, user_id=current_user.id, data=update_data)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+# ===== GUARANTOR / NEXT OF KIN =====
+
+@router.post("/contacts", response_model=GuarantorResponse)
+def save_contact(
+    data: GuarantorRequest,
+    current_user: User = Depends(require_role("business_owner")),
+    db: DBSession = Depends(get_db),
+):
+    """POST /api/v1/business/contacts — submit guarantor OR next-of-kin (contact_type in body)."""
+    try:
+        return create_or_update_contact(db, current_user.id, data.model_dump())
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.get("/contacts", response_model=List[GuarantorResponse])
+def list_my_contacts(
+    current_user: User = Depends(require_role("business_owner")),
+    db: DBSession = Depends(get_db),
+):
+    """GET /api/v1/business/contacts — returns both rows (guarantor + next-of-kin) if present."""
+    return get_my_contacts(db, current_user.id)
+
+# ===== ONBOARDING INTERVIEW =====
+
+@router.post("/interview", response_model=BusinessInterviewResponse)
+def schedule_interview(
+    data: BookInterviewRequest,
+    current_user: User = Depends(require_role("business_owner")),
+    db: DBSession = Depends(get_db),
+):
+    """POST /api/v1/business/interview — Step 6, book the onboarding call."""
+    try:
+        return book_interview(
+            db, current_user.id,
+            scheduled_at=data.scheduled_at,
+            interview_type=data.interview_type,
+            location=data.location,
+            notes=data.notes,
+        )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
