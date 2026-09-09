@@ -10,6 +10,7 @@ from app.models.business_profile import (
 )
 
 from app.services.business_document_service import has_required_documents
+from app.services.guarantor_service import has_required_contacts
 
 
 def create_or_update_business_profile(db: DBSession, user_id, data: dict) -> BusinessProfile:
@@ -65,6 +66,9 @@ def submit_for_review(db: DBSession, user_id) -> BusinessProfile:
     
     if not has_required_documents(db, profile.id):
         raise ValueError(f"Please submit all 5 required documents before submitting for review")
+
+    if not has_required_contacts(db, user_id):
+        raise ValueError("Please add a guarantor before submitting for review")
 
     profile.status = BusinessProfileStatusEnum.pending_review.value
     profile.rejection_reason = None  # clear any stale rejection reason from a prior cycle
