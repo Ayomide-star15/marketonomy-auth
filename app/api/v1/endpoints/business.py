@@ -46,6 +46,14 @@ from app.services.guarantor_service import (
     get_my_contacts
 )
 
+from app.schemas.business_interview import BookInterviewRequest, BusinessInterviewResponse
+
+from app.services.business_interview_service import (
+    book_interview,
+    get_my_interview,
+    cancel_interview
+)
+
 from app.services.business_document_service import (
     upload_business_document,
     get_my_documents,
@@ -278,3 +286,23 @@ def list_my_contacts(
 ):
     """GET /api/v1/business/contacts — returns both rows (guarantor + next-of-kin) if present."""
     return get_my_contacts(db, current_user.id)
+
+# ===== ONBOARDING INTERVIEW =====
+
+@router.post("/interview", response_model=BusinessInterviewResponse)
+def schedule_interview(
+    data: BookInterviewRequest,
+    current_user: User = Depends(require_role("business_owner")),
+    db: DBSession = Depends(get_db),
+):
+    """POST /api/v1/business/interview — Step 6, book the onboarding call."""
+    try:
+        return book_interview(
+            db, current_user.id,
+            scheduled_at=data.scheduled_at,
+            interview_type=data.interview_type,
+            location=data.location,
+            notes=data.notes,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
