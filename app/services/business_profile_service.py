@@ -72,48 +72,6 @@ def submit_for_review(db: DBSession, user_id) -> BusinessProfile:
     db.refresh(profile)
     return profile
 
-
-def approve_business_profile(db: DBSession, business_id: str) -> BusinessProfile:
-    """
-    Admin-only action. Flips pending_review -> approved.
-    This is the exact moment a business becomes visible on Market.
-    """
-    profile = db.query(BusinessProfile).filter(BusinessProfile.id == business_id).first()
-    if not profile:
-        raise ValueError("Business profile not found")
-
-    if profile.status != BusinessProfileStatusEnum.pending_review.value:
-        raise ValueError(f"Cannot approve — profile is currently '{profile.status}', not 'pending_review'")
-
-    profile.status = BusinessProfileStatusEnum.approved.value
-    profile.rejection_reason = None
-    db.commit()
-    db.refresh(profile)
-    return profile
-
-
-def reject_business_profile(db: DBSession, business_id: str, reason: str) -> BusinessProfile:
-    """
-    Admin-only action. Flips pending_review -> rejected, with a reason
-    the business owner can see (per PRD 1.3: "Approve or reject a
-    business, with a reason if rejected").
-    """
-    profile = db.query(BusinessProfile).filter(BusinessProfile.id == business_id).first()
-    if not profile:
-        raise ValueError("Business profile not found")
-
-    if profile.status != BusinessProfileStatusEnum.pending_review.value:
-        raise ValueError(f"Cannot reject — profile is currently '{profile.status}', not 'pending_review'")
-
-    if not reason or not reason.strip():
-        raise ValueError("A reason is required when rejecting a business profile")
-
-    profile.status = BusinessProfileStatusEnum.rejected.value
-    profile.rejection_reason = reason
-    db.commit()
-    db.refresh(profile)
-    return profile
-
 def get_business_profile_by_id(db: DBSession, business_id) -> BusinessProfile:
     """
     Fetches any business profile by its ID.
